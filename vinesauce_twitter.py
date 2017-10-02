@@ -50,11 +50,11 @@ def main():
     # as to not spam twitter, so we get the
     # next post from reddit, tweet it, then break.
 
-    for post in reddit.subreddit('vinesauce').hot(limit=5):
+    for post in reddit.subreddit('vinesauce').hot(limit=7):
         meta = ' {} #vinesauce'.format(post.shortlink)
 
-        if post.id not in posted:
-            if post.link_flair_text == 'Weekly Post' or post.score >= 25:
+        if post.link_flair_text == 'Weekly Post' or post.score >= 25:
+            if post.id not in posted:
                 if post.is_self:
                     tweet(truncate_title(post.title, meta))
 
