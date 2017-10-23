@@ -63,7 +63,7 @@ def main():
 
                     files = save_media(images)
 
-                    tweet(truncate_title(post.title, meta), files)
+                    tweet(truncate_title(post.title, meta), files[:4])
 
                     [os.remove(file) for file in files]
 
@@ -86,7 +86,7 @@ def truncate_title(title, rest):
 def get_media(url):
     IMGUR_HEADERS = {'Authorization': 'Client-ID {}'.format(IMGUR_CLIENT_ID)}
 
-    url = url.replace('http:', 'https:')
+    url = url.replace('http:', 'https:').replace('gallery', 'a')
 
     # If its an imgur album
     match = re.match('(https?)\:\/\/(www\.)?(?:m\.)?imgur\.com/a/([a-zA-Z0-9]+)(#[0-9]+)?', url)
