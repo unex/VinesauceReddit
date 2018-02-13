@@ -6,38 +6,30 @@ import shutil
 import tweepy
 import requests
 from urllib.parse import urlparse
+from dotenv import load_dotenv
 
-# Custom logging stuff
 try:
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"..")))
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"../../")))
     from utils import log
 
 except:
+    print('Could not load custom logging')
     import logging
     log = logging.getLogger(__name__)
     log.setLevel(logging.INFO)
 
     log.addHandler(logging.StreamHandler(sys.stdout))
 
-# Get config
-with open("config.yaml", 'r') as config:
-    try:
-        config = yaml.load(config)
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+IMGUR_CLIENT_ID = os.environ.get("IMGUR_CLIENT_ID")
 
-        IMGUR_CLIENT_ID = config['IMGUR_CLIENT_ID']
+TWITTER_CONSUMER_TOKEN = os.environ.get("TWITTER_CONSUMER_TOKEN")
+TWITTER_CONSUMER_SECRET = os.environ.get("TWITTER_CONSUMER_SECRET")
+TWITTER_ACCESS_TOKEN = os.environ.get("TWITTER_ACCESS_TOKEN")
+TWITTER_ACCESS_TOKEN_SECRET = os.environ.get("TWITTER_ACCESS_TOKEN_SECRET")
 
-        TWITTER_CONSUMER_TOKEN = config['TWITTER_CONSUMER_TOKEN']
-        TWITTER_CONSUMER_SECRET = config['TWITTER_CONSUMER_SECRET']
-        TWITTER_ACCESS_TOKEN = config['TWITTER_ACCESS_TOKEN']
-        TWITTER_ACCESS_TOKEN_SECRET = config['TWITTER_ACCESS_TOKEN_SECRET']
-
-    except yaml.YAMLError as exc:
-        print('Error opening config file: '.config(exc))
-
-# reddit
 reddit = praw.Reddit('BonziBot', user_agent='VinesauceReddit Twitter bot /u/RenegadeAI')
 
-# twitter
 auth = tweepy.OAuthHandler(TWITTER_CONSUMER_TOKEN, TWITTER_CONSUMER_SECRET)
 auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
 twitter = tweepy.API(auth)
@@ -53,7 +45,7 @@ def main():
     for post in reddit.subreddit('vinesauce').hot(limit=7):
         meta = ' {} #vinesauce'.format(post.shortlink)
 
-        if post.link_flair_text == 'Weekly Post' or post.score >= 25:
+        if post.link_flair_text == 'Weekly Post' or post.score >= 35:
             if post.id not in posted:
                 if post.is_self:
                     tweet(truncate_title(post.title, meta))
