@@ -31,18 +31,18 @@ CHANNELS = [
         'id': 'UCzVu0rUV7xoerfGNx37SCjw',
         'name': 'Dire Boar',
         'title_sub': ['DireBoar -'],
-        'title_reject': ['(Full Stream)']
+        'title_reject': ['(Full Stream)', '(FULL STREAM)', 'DireVODs']
     },
     {
         'id': 'UC6CvZVuX2PP7IFxXI8bTIUA',
         'name': 'Limesalicious',
         'title_sub': ['Limes -']
     },
-    # {
-    #     'id': 'UC_PdCOJ7czSXS5X3J4jJpcw',
-    #     'name': 'LiveByFoma',
-    #     'title_sub': ['KY -']
-    # },
+    {
+        'id': 'UC_PdCOJ7czSXS5X3J4jJpcw',
+        'name': 'LiveByFoma',
+        'title_sub': ['KY -']
+    },
     {
         'id': 'UCcubzpdxucT9b3Va1H6L7LA',
         'name': 'Fredsauce',
