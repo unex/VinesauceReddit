@@ -85,7 +85,7 @@ def render(team):
 
     for name, member in team.items():
         if not name in IGNORED_MEMBERS:
-            while True:
+            for i in range(3):
                 try:
                     res = requests.get(STREAM_URL % member.get('channel').get('name'))
                     res.raise_for_status()
