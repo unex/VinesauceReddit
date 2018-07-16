@@ -63,6 +63,17 @@ def get_team():
 
         team = req.json()
 
+        team['vinesauceisHOPE'] = {
+            "channel": {
+                "display_name": "VinesauceisHOPE",
+                "game": "Talk Shows",
+                "_id": 154752393,
+                "name": "vinesauceishope",
+                "logo": "https://static-cdn.jtvnw.net/jtv_user_pictures/cfbdfbc8ffb7af0b-profile_image-300x300.png",
+                "url": "https://www.twitch.tv/vinesauceishope",
+            }
+        }
+
         with open(DIR + "team.json", "w") as file:
             json.dump(team, file)
 
