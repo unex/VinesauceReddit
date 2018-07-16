@@ -127,7 +127,7 @@ def render(team):
                             break
 
                 except requests.RequestException as e:
-                    log.error("There was an error checking status for {0}, waiting before trying again: {1}".format(member.get('channel').get('name'), e))
+                    log.error("There was an error checking status for {0}, waiting before trying again: {1}".format(name, e))
                     time.sleep(10)
 
     if (STREAMING or HOSTING) and OFFLINE:
