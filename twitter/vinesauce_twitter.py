@@ -9,8 +9,8 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 try:
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"../../")))
-    from utils import log
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"../../utils")))
+    from log import log
 
 except:
     print('Could not load custom logging')
