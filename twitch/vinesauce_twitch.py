@@ -6,6 +6,7 @@ import json
 import requests
 from dotenv import load_dotenv
 from string import Template
+from datetime import datetime as dt
 
 try:
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"../../utils")))
@@ -135,7 +136,10 @@ def render(team):
 
     title = "> ###CLICK A CHANNEL TO START WATCHING!\n" if STREAMING else "> ###TEAM IS OFFLINE\n"
 
-    return "\n\n{0}{1}\n".format(title, STREAMING + HOSTING + OFFLINE)
+    now = dt.utcnow()
+    last_updated = f"* `LAST UPDATED\n@ {now.strftime('%X')}\n{now.strftime('%x')} UTC`\n"
+
+    return "\n\n{0}{1}{2}\n".format(title, STREAMING + HOSTING + OFFLINE, last_updated)
 
 def update_sidebar(content):
     for sub in SUBREDDITS:
