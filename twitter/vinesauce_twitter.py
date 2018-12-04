@@ -45,7 +45,7 @@ def main():
     for post in reddit.subreddit('vinesauce').hot(limit=7):
         meta = ' {} #vinesauce'.format(post.shortlink)
 
-        if post.link_flair_text == 'Weekly Post' or post.score >= 35:
+        if post.link_flair_text == 'Weekly Post' or post.score >= 40:
             if post.id not in posted:
                 if post.is_self:
                     tweet(truncate_title(post.title, meta))
