@@ -39,11 +39,6 @@ CHANNELS = [
         'title_sub': ['Limes -']
     },
     {
-        'id': 'UC_PdCOJ7czSXS5X3J4jJpcw',
-        'name': 'LiveByFoma',
-        'title_sub': ['KY -']
-    },
-    {
         'id': 'UCcubzpdxucT9b3Va1H6L7LA',
         'name': 'Fredsauce',
         'title_sub': ['Fred -', 'Fredsauce: ']
