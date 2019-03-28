@@ -7,18 +7,7 @@ import tweepy
 import requests
 from urllib.parse import urlparse
 from dotenv import load_dotenv
-
-try:
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"../../utils")))
-    from log import log
-
-except:
-    print('Could not load custom logging')
-    import logging
-    log = logging.getLogger(__name__)
-    log.setLevel(logging.INFO)
-
-    log.addHandler(logging.StreamHandler(sys.stdout))
+from derw import log
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 IMGUR_CLIENT_ID = os.environ.get("IMGUR_CLIENT_ID")
