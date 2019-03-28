@@ -4,6 +4,7 @@ import os, sys
 import yaml
 from apiclient.discovery import build
 from apiclient.errors import HttpError
+from googleapiclient.discovery_cache.base import Cache
 import praw
 import time
 from datetime import datetime as dt
@@ -104,8 +105,17 @@ def main():
     with open(os.path.dirname(os.path.realpath(__file__)) + '/last_checked', 'w') as f:
         f.write(str(current_time.timestamp()))
 
+class MemoryCache(Cache):
+    _CACHE = {}
+
+    def get(self, url):
+        return MemoryCache._CACHE.get(url)
+
+    def set(self, url, content):
+        MemoryCache._CACHE[url] = content
+
 def get_videos(channel):
-    youtube = build('youtube', 'v3', developerKey = DEVELOPER_KEY)
+    youtube = build('youtube', 'v3', developerKey = DEVELOPER_KEY, cache=MemoryCache())
 
     rss = feedparser.parse(f'https://www.youtube.com/feeds/videos.xml?channel_id={channel["id"]}')
 
