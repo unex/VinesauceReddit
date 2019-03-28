@@ -9,11 +9,9 @@ import praw
 import time
 from datetime import datetime as dt
 import requests
-from dotenv import load_dotenv
 from derw import log
 import feedparser
 
-load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 DEVELOPER_KEY = os.environ.get("DEVELOPER_KEY")
 
 SUBREDDIT = 'Vinesauce'

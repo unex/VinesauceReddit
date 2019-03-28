@@ -6,10 +6,8 @@ import shutil
 import tweepy
 import requests
 from urllib.parse import urlparse
-from dotenv import load_dotenv
 from derw import log
 
-load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 IMGUR_CLIENT_ID = os.environ.get("IMGUR_CLIENT_ID")
 
 TWITTER_CONSUMER_TOKEN = os.environ.get("TWITTER_CONSUMER_TOKEN")

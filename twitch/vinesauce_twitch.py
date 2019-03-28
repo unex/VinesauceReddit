@@ -4,13 +4,9 @@ import praw
 import time
 import json
 import requests
-from dotenv import load_dotenv
 from string import Template
 from datetime import datetime as dt
 from derw import log
-
-DIR = os.path.dirname(__file__)
-load_dotenv(os.path.join(DIR, '.env'))
 
 TWITCH_ID = os.environ.get("TWITCH_ID")
 
@@ -53,7 +49,7 @@ def get_team():
 
         team = req.json()
 
-        with open(DIR + "team.json", "w") as file:
+        with open("./team.json", "w") as file:
             json.dump(team, file)
 
         return team
@@ -61,7 +57,7 @@ def get_team():
     except Exception as e:
         log.error('Error updating team: {}'.format(e))
 
-        with open(DIR + "team.json") as file:
+        with open("./team.json") as file:
             return json.load(file)
 
 def decode_str(s): return bytes(s, "utf-8").decode("unicode_escape")
