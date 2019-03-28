@@ -9,19 +9,8 @@ import time
 from datetime import datetime as dt
 import requests
 from dotenv import load_dotenv
+from derw import log
 import feedparser
-
-try:
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"../../utils")))
-    from log import log
-
-except:
-    print('Could not load custom logging')
-    import logging
-    log = logging.getLogger(__name__)
-    log.setLevel(logging.DEBUG)
-
-    log.addHandler(logging.StreamHandler(sys.stdout))
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 DEVELOPER_KEY = os.environ.get("DEVELOPER_KEY")

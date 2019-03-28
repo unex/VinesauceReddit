@@ -7,18 +7,7 @@ import requests
 from dotenv import load_dotenv
 from string import Template
 from datetime import datetime as dt
-
-try:
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),"../../utils")))
-    from log import log
-
-except:
-    print('Could not load custom logging')
-    import logging
-    log = logging.getLogger(__name__)
-    log.setLevel(logging.DEBUG)
-
-    log.addHandler(logging.StreamHandler(sys.stdout))
+from derw import log
 
 DIR = os.path.dirname(__file__)
 load_dotenv(os.path.join(DIR, '.env'))
