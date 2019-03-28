@@ -1,0 +1,19 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+praw = "*"
+requests = "*"
+google-api-python-client = "*"
+python-dotenv = "*"
+utils = "*"
+PyYAML = "*"
+feedparser = "*"
+derw = {git = "https://github.com/notderw/python-util"}
+
+[requires]
+python_version = "3.7"
