@@ -162,17 +162,9 @@ def post(video, channel):
     video_id = video[2]
     link = 'https://www.youtube.com/watch?v={}'.format(video_id)
 
-    # flair_css_class = "channel " + channel['id'].replace('_',"-")
-    # flair_text = channel['name']
-
-    flair_css_class = 'red'
-    flair_text = 'Official Video'
-
     while True:
         try:
-            submission = reddit.subreddit(SUBREDDIT).submit(video_title, url=link, resubmit=True)
-            submission.mod.flair(css_class = flair_css_class,
-                             text = flair_text)
+            reddit.subreddit(SUBREDDIT).submit(video_title, url=link, flair_id="ac140ae8-f369-11e8-8489-0e4499b53a5a", resubmit=True)
 
             log.info('Posted: ' + video_title)
             break
