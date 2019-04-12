@@ -10,7 +10,6 @@ import time
 from datetime import datetime as dt
 import requests
 from derw import log
-import feedparser
 
 DEVELOPER_KEY = os.environ.get("DEVELOPER_KEY")
 
@@ -115,18 +114,31 @@ class MemoryCache(Cache):
 def get_videos(channel):
     youtube = build('youtube', 'v3', developerKey = DEVELOPER_KEY, cache=MemoryCache())
 
-    rss = feedparser.parse(f'https://www.youtube.com/feeds/videos.xml?channel_id={channel["id"]}')
+    while True:
+        try:
+            search_response = youtube.search().list(
+                                channelId = channel['id'],
+                                publishedAfter = LAST_CHECKED.isoformat('T') + 'Z',
+                                order = 'date',
+                                part = "id, snippet",
+                                maxResults = 50, # Change if you want to search more videos at a time.
+                                type = 'video').execute()
+            break
 
-    vids = []
-    for vid in reversed(rss.get("entries")):
-        if(LAST_CHECKED < dt.strptime(vid["published"].split("+")[0], "%Y-%m-%dT%H:%M:%S")):
-            vids.append([vid['title'],
-                        rss["feed"]["title"],
-                        vid["yt_videoid"],
-                        vid["yt_channelid"]])
+        except Exception as e:
+            log.error('Error searching YouTube: {}'.format(e))
+            time.sleep(600)
 
-    # return videos
-    return vids
+    videos = []
+
+    for search_result in search_response.get("items", []):
+        if(search_result['snippet']['liveBroadcastContent'] != 'live'):
+            videos.append([search_result['snippet']['title'],
+                           search_result['snippet']['channelTitle'],
+                           search_result['id']['videoId'],
+                           search_result['snippet']['channelId']])
+
+        return videos
 
 def post(video, channel):
     video_title = video[0]
