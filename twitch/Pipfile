@@ -4,6 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+pillow = "*"
 
 [packages]
 utils = "*"
@@ -11,6 +12,7 @@ praw = "*"
 requests = "*"
 python-dotenv = "*"
 derw = {git = "https://github.com/notderw/python-util"}
+twitch-python = "*"
 
 [requires]
 python_version = "3.7"
