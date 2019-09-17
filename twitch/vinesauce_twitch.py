@@ -11,7 +11,7 @@ TWITCH_ID = os.environ.get("TWITCH_ID")
 WIDGET_ID = os.environ.get("WIDGET_ID")
 
 SUBREDDIT = "Vinesauce"
-TEAM_URL = 'http://vinesauce.com/twitch/team-data.json'
+TEAM_URL = 'http://vinesauce.com/twitch/team-data-helix.json'
 
 team = None
 ttv = twitch.Helix(TWITCH_ID, use_cache=True, cache_duration=timedelta(minutes=10))
@@ -90,7 +90,7 @@ def get_team():
 def get_streams(team):
     log.debug('Fetching streams...')
 
-    ids = [v["channel"]["_id"] for k, v in team.items()]
+    ids = [int(_id) for _id, v in team.items()]
     streams = []
 
     for user in ttv.users(ids):
