@@ -162,6 +162,8 @@ if __name__ == '__main__':
 
     streams = get_streams(team)
 
+    streams.sort(key=lambda x: x.stream.viewer_count if hasattr(x, 'stream') else 0, reverse=True)
+
     sort = []
     for state in ["live", "hosting", "offline"]:
         for stream in streams:
