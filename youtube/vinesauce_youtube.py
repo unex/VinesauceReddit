@@ -87,6 +87,17 @@ except Exception as e:
 
 reddit = praw.Reddit('BonziBot', user_agent='Vinesauce Youtube Poster by /u/RenegadeAI')
 
+class MemoryCache(Cache):
+        _CACHE = {}
+
+        def get(self, url):
+            return MemoryCache._CACHE.get(url)
+
+        def set(self, url, content):
+            MemoryCache._CACHE[url] = content
+
+youtube = build('youtube', 'v3', developerKey = DEVELOPER_KEY, cache=MemoryCache())
+
 def main():
     log.debug("Last checked at {}".format(LAST_CHECKED.time().strftime("%H:%M:%S")))
 
@@ -102,32 +113,19 @@ def main():
     with open(os.path.dirname(os.path.realpath(__file__)) + '/last_checked', 'w') as f:
         f.write(str(current_time.timestamp()))
 
-class MemoryCache(Cache):
-    _CACHE = {}
-
-    def get(self, url):
-        return MemoryCache._CACHE.get(url)
-
-    def set(self, url, content):
-        MemoryCache._CACHE[url] = content
-
 def get_videos(channel):
-    youtube = build('youtube', 'v3', developerKey = DEVELOPER_KEY, cache=MemoryCache())
+    try:
+        search_response = youtube.search().list(
+                            channelId = channel['id'],
+                            publishedAfter = LAST_CHECKED.isoformat('T') + 'Z',
+                            order = 'date',
+                            part = "id, snippet",
+                            maxResults = 50, # Change if you want to search more videos at a time.
+                            type = 'video').execute()
 
-    while True:
-        try:
-            search_response = youtube.search().list(
-                                channelId = channel['id'],
-                                publishedAfter = LAST_CHECKED.isoformat('T') + 'Z',
-                                order = 'date',
-                                part = "id, snippet",
-                                maxResults = 50, # Change if you want to search more videos at a time.
-                                type = 'video').execute()
-            break
-
-        except Exception as e:
-            log.error('Error searching YouTube: {}'.format(e))
-            time.sleep(600)
+    except Exception as e:
+        log.error('Error searching YouTube: {}'.format(e))
+        return []
 
     videos = []
 
