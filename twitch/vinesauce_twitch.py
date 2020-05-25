@@ -5,16 +5,20 @@ import json
 import requests
 import twitch
 from datetime import datetime as dt, timedelta
+
+from oauth import TwitchOAuth
 from derw import log
 
 TWITCH_ID = os.environ.get("TWITCH_ID")
+TWITCH_SECRET = os.environ.get("TWITCH_SECRET")
 WIDGET_ID = os.environ.get("WIDGET_ID")
 
 SUBREDDIT = "Vinesauce"
 TEAM_URL = 'http://vinesauce.com/twitch/team-data-helix.json'
 
 team = None
-ttv = twitch.Helix(TWITCH_ID, use_cache=True, cache_duration=timedelta(minutes=10))
+oauth = TwitchOAuth(TWITCH_ID, TWITCH_SECRET, [])
+ttv = twitch.Helix(TWITCH_ID, bearer_token = oauth.access_token, use_cache=True, cache_duration=timedelta(minutes=10))
 reddit = praw.Reddit('BonziBot', user_agent='Vinesauce Twitch.tv monitor /u/RenegadeAI')
 now = dt.utcnow()
 
