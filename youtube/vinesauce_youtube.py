@@ -64,10 +64,10 @@ CHANNELS = [
     #     'name': 'GeePM',
     #     'title_sub': ['- GeePM', 'GeePM -']
     # }
-    # {
-    #     'id': 'UC2_IYqb1Tc_8Azh7rByedPA',
-    #     'name': 'Full Sauce'
-    # },
+    {
+        'id': 'UC2_IYqb1Tc_8Azh7rByedPA',
+        'name': 'Full Sauce'
+    },
     # {
     #     'id': 'UCRNCUBq676nUhXyy8AJzD5w',
     #     'name': 'Joel: Full Streams'
