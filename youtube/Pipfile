@@ -7,13 +7,9 @@ verify_ssl = true
 
 [packages]
 praw = "*"
-requests = "*"
 google-api-python-client = "*"
-python-dotenv = "*"
-utils = "*"
-PyYAML = "*"
-feedparser = "*"
 derw = {git = "https://github.com/notderw/python-util"}
+pydantic = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"
