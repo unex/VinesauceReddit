@@ -1,19 +1,27 @@
-#pip install google-api-python-client
+import os
+import sys
 
-import os, sys
-import yaml
+from typing import List, Optional
+from collections import deque
+from contextlib import suppress
+from datetime import datetime, timedelta
+
+import praw
+
 from apiclient.discovery import build
 from apiclient.errors import HttpError
-from googleapiclient.discovery_cache.base import Cache
-import praw
-import time
-from datetime import datetime as dt
-import requests
-from derw import log
+from pydantic import BaseModel
+from derw import makeLogger
+
+log = makeLogger(__file__)
+
+DRY_RUN = '--dry-run' in sys.argv
+POPULATE_SEEN = '--populate-seen' in sys.argv
 
 DEVELOPER_KEY = os.environ.get("DEVELOPER_KEY")
+SUBREDDIT = os.environ.get("SUBREDDIT")
+FLAIR_ID = os.environ.get("FLAIR_ID")
 
-SUBREDDIT = 'Vinesauce'
 CHANNELS = [
     {
         'id': 'UCzVu0rUV7xoerfGNx37SCjw',
@@ -78,102 +86,142 @@ CHANNELS = [
     # }
 ]
 
-try:
-    with open(os.path.dirname(os.path.realpath(__file__)) + '/last_checked') as f:
-        LAST_CHECKED = dt.fromtimestamp(float(f.read()))
+class WatchedChannel(BaseModel):
+    id: str
+    name: str
+    title_sub: Optional[List[str]] = []
+    title_reject: Optional[List[str]] = []
 
-except Exception as e:
-    log.error('{}'.format(e))
+class Video(BaseModel):
+    id: str
+    title: str
+    channel_title: str
 
-reddit = praw.Reddit('BonziBot', user_agent='Vinesauce Youtube Poster by /u/RenegadeAI')
+    @property
+    def url(self):
+        return f'https://www.youtube.com/watch?v={self.id}'
 
-class MemoryCache(Cache):
-        _CACHE = {}
+    @classmethod
+    def from_api(cls, data):
+        return cls(
+            id = data["contentDetails"]["upload"]["videoId"],
+            title = data["snippet"]["title"],
+            channel_title = data["snippet"]["channelTitle"]
+        )
 
-        def get(self, url):
-            return MemoryCache._CACHE.get(url)
 
-        def set(self, url, content):
-            MemoryCache._CACHE[url] = content
+class SeenVideos(deque):
+    _file = os.path.dirname(os.path.realpath(__file__)) + '/seen_videos'
 
-youtube = build('youtube', 'v3', developerKey = DEVELOPER_KEY, cache=MemoryCache())
+    def __init__(self, maxlen: Optional[int]) -> None:
+        with open(self._file, 'r') as f:
+            ids = f.read().strip().split('\n')
+
+            super().__init__(ids, maxlen)
+
+    def save(self):
+        with open(self._file, 'w') as f:
+            f.write('\n'.join(list(self)))
+
+
+reddit = praw.Reddit('BonziBot', user_agent = 'Vinesauce YouTube Bot - /u/RenegadeAI')
+reddit.validate_on_submit = True
+subreddit = reddit.subreddit(SUBREDDIT)
+youtube = build('youtube', 'v3', developerKey = DEVELOPER_KEY)
+
 
 def main():
-    log.debug("Last checked at {}".format(LAST_CHECKED.time().strftime("%H:%M:%S")))
+    log.info(f'Logged into reddit as /u/{reddit.user.me()} on /r/{subreddit.display_name}')
+    seen = SeenVideos(100)
 
-    current_time = dt.utcnow()
+    for c in CHANNELS:
+        channel = WatchedChannel(**c)
+        log.debug(f'Checking: {channel.name}')
 
-    for channel in CHANNELS:
-        log.debug('Checking: {}'.format(channel['name']))
-        videos = get_videos(channel)
-        if videos:
-            for video in videos:
+        for video in get_videos(channel):
+            if video.id in seen:
+                # add the seen back to the top, that way we dont
+                # accidentally double post if a channel is inactive for a while
+                with suppress(ValueError):
+                    seen.remove(video.id)
+
+                seen.append(video.id)
+
+                continue
+
+            if not POPULATE_SEEN:
                 post(video, channel)
+            else:
+                log.info(f'POPULATING SEEN - {video.id}')
 
-    with open(os.path.dirname(os.path.realpath(__file__)) + '/last_checked', 'w') as f:
-        f.write(str(current_time.timestamp()))
+            seen.append(video.id)
 
-def get_videos(channel):
+    if not DRY_RUN:
+        seen.save()
+
+def get_videos(channel: WatchedChannel) -> List[Video]:
     try:
-        search_response = youtube.search().list(
-                            channelId = channel['id'],
-                            publishedAfter = LAST_CHECKED.isoformat('T') + 'Z',
-                            order = 'date',
-                            part = "id, snippet",
-                            maxResults = 50, # Change if you want to search more videos at a time.
-                            type = 'video').execute()
+        yesterday = datetime.utcnow() - timedelta(hours = 24)
+        r = youtube.activities().list(
+                channelId = channel.id,
+                publishedAfter = yesterday.isoformat('T') + 'Z',
+                part = "snippet, contentDetails",
+            ).execute()
+
+        return [Video.from_api(x) for x in r.get("items") if x["snippet"]["type"] == 'upload']
+
+    except HttpError as e:
+        for err in e.error_details:
+            if err.get('reason') == 'quotaExceeded':
+                log.critical('YouTube API quota exceeded, exiting')
+                sys.exit(0)
+
+        log.error(e)
 
     except Exception as e:
-        log.error('Error searching YouTube: {}'.format(e))
+        log.error(f'Error searching YouTube: {e}')
         return []
 
-    videos = []
-
-    for search_result in search_response.get("items", []):
-        if(search_result['snippet']['liveBroadcastContent'] != 'live'):
-            videos.append([search_result['snippet']['title'],
-                           search_result['snippet']['channelTitle'],
-                           search_result['id']['videoId'],
-                           search_result['snippet']['channelId']])
-
-        return videos
-
 def post(video, channel):
-    video_title = video[0]
+    for f in channel.title_reject:
+        if f in video.title:
+            return False
 
-    if 'title_reject' in channel:
-        for filter in channel['title_reject']:
-            if filter in video_title:
-                return False
+    sub = ['[Vinesauce]', '[VINESAUCE]']
 
-    sub = ['[Vinesauce]', '[Vinesauce]', '[VINESAUCE]']
+    sub += channel.title_sub
 
-    if 'title_sub' in channel:
-        sub += channel['title_sub']
+    video_title = video.title
 
-    for str_ in sub:
-        video_title = video_title.replace(str_, '')
+    for s in sub:
+        video_title = video_title.replace(s, '')
 
-    # video_title = '[' + channel['name'] + '] ' + video_title.strip()
-    video_title = '[{0}] {1}'.format(channel['name'], video_title.strip())
+    video_title = f'[{channel.name}] {video_title.strip()}'
 
-    video_id = video[2]
-    link = 'https://www.youtube.com/watch?v={}'.format(video_id)
+    if DRY_RUN:
+        log.info(f'DRY RUN - Post {video_title}')
+
+        return
 
     while True:
         try:
-            reddit.subreddit(SUBREDDIT).submit(video_title, url=link, flair_id="ac140ae8-f369-11e8-8489-0e4499b53a5a", resubmit=True)
+            s = subreddit.submit(
+                video_title,
+                url = video.url,
+                flair_id = FLAIR_ID,
+                resubmit = True
+            )
 
-            log.info('Posted: ' + video_title)
+            log.info(f'Posted: {video_title} {s.shortlink}')
             break
 
         except praw.exceptions.APIException as e:
             if(e.error_type == 'ALREADY_SUB'):
-                log.warning('Already Posted: {}'.format(video_title))
+                log.warning(f'Already Posted: {video_title}')
                 break
 
         except Exception as e:
-            log.error('Error submitting: {}'.format(e))
+            log.error(f'Error submitting: {video_title} {e}')
 
 if __name__ == "__main__":
     main()
