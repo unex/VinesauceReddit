@@ -15,4 +15,4 @@ derw = {git = "https://github.com/notderw/python-util"}
 twitch-python = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"
