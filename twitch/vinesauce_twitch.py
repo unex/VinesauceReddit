@@ -105,7 +105,11 @@ def get_streams(team):
 
 
 def update_widget(streams):
-    widget = reddit.subreddit(SUBREDDIT).widgets.items[WIDGET_ID]
+    subreddit = reddit.subreddit(SUBREDDIT)
+
+    try:
+        widget = subreddit.widgets.items[WIDGET_ID]
+
     content = ""
 
     for stream in streams:
@@ -116,6 +120,13 @@ def update_widget(streams):
     widget.mod.update(text=content, height=24 + len(streams)*50)
 
     log.debug('updated widget')
+
+    except KeyError:
+        log.critical(f'Could not find widget "{WIDGET_ID}"')
+
+        print('Avaliable widgets:')
+        for w in subreddit.widgets.sidebar:
+            print(f'    {w.id} - {w.kind}')
 
 def update_sidebar(streams):
     any_live = False
