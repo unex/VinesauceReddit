@@ -7,14 +7,16 @@ import twitch
 from datetime import datetime as dt, timedelta
 
 from oauth import TwitchOAuth
-from derw import log
+from derw import makeLogger
 
+SUBREDDIT = os.environ.get("SUBREDDIT")
 TWITCH_ID = os.environ.get("TWITCH_ID")
 TWITCH_SECRET = os.environ.get("TWITCH_SECRET")
 WIDGET_ID = os.environ.get("WIDGET_ID")
 
-SUBREDDIT = "Vinesauce"
 TEAM_URL = 'http://vinesauce.com/twitch/team-data-helix.json'
+
+log = makeLogger(__file__)
 
 team = None
 oauth = TwitchOAuth(TWITCH_ID, TWITCH_SECRET, [])
@@ -110,16 +112,16 @@ def update_widget(streams):
     try:
         widget = subreddit.widgets.items[WIDGET_ID]
 
-    content = ""
+        content = ""
 
-    for stream in streams:
-        content += stream.render_widget()
+        for stream in streams:
+            content += stream.render_widget()
 
-    content += f'\n\n`LAST UPDATED @ {now.strftime("%X")} {now.strftime("%x")} UTC`'
+        content += f'\n\n`LAST UPDATED @ {now.strftime("%X")} {now.strftime("%x")} UTC`'
 
-    widget.mod.update(text=content, height=24 + len(streams)*50)
+        widget.mod.update(text=content, height=24 + len(streams)*50)
 
-    log.debug('updated widget')
+        log.debug('updated widget')
 
     except KeyError:
         log.critical(f'Could not find widget "{WIDGET_ID}"')
