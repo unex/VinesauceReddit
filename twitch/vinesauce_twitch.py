@@ -150,23 +150,22 @@ def update_sidebar(streams):
     content += f"* `LAST UPDATED\n@ {now.strftime('%X')}\n{now.strftime('%x')} UTC`\n"
 
     subreddit = reddit.subreddit(SUBREDDIT)
-    settings = subreddit.mod.settings()
-    sidebar = settings['description']
+    sidebar = subreddit.wiki["config/sidebar"]
 
     # Remove text currently between the markers
-    sidebar = re.sub(r'(\[\]\(#BOT_STREAMS\)).*(\[\]\(/BOT_STREAMS\))',
+    sb = re.sub(r'(\[\]\(#BOT_STREAMS\)).*(\[\]\(/BOT_STREAMS\))',
                     '\\1\\2',
-                    sidebar,
+                    sidebar.content_md,
                     flags=re.DOTALL)
 
     # Place new text between the markers
     opening_marker = "[](#BOT_STREAMS)"
     if content:
         try:
-            marker_pos = sidebar.index(opening_marker) + len(opening_marker)
-            sidebar = sidebar[:marker_pos] + f'\n\n{content}\n' + sidebar[marker_pos:]
+            marker_pos = sb.index(opening_marker) + len(opening_marker)
+            sb = sb[:marker_pos] + f'\n\n{content}\n' + sb[marker_pos:]
 
-            subreddit.mod.update(description=sidebar)
+            sidebar.edit(content=sb)
 
         except ValueError:
             # Substring not found
