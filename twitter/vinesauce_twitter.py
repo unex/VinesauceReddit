@@ -6,7 +6,9 @@ import shutil
 import tweepy
 import requests
 from urllib.parse import urlparse
-from derw import log
+from derw import makeLogger
+
+log = makeLogger(__name__)
 
 IMGUR_CLIENT_ID = os.environ.get("IMGUR_CLIENT_ID")
 
