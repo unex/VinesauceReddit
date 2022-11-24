@@ -106,7 +106,7 @@ class Video(BaseModel):
         return cls(
             id = data["contentDetails"]["upload"]["videoId"],
             title = data["snippet"]["title"],
-            channel_title = data["snippet"]["channelTitle"]
+            channel_title = data["snippet"]["channelTitle"] if "channelTitle" in data["snippet"] else ""
         )
 
 
