@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 
 from typing import List, Optional
 from collections import deque
@@ -14,6 +15,9 @@ from pydantic import BaseModel
 from derw import makeLogger
 
 log = makeLogger(__file__)
+
+# import logging
+# log.setLevel(logging.DEBUG)
 
 DRY_RUN = '--dry-run' in sys.argv
 POPULATE_SEEN = '--populate-seen' in sys.argv
@@ -139,7 +143,9 @@ def main():
         log.debug(f'Checking: {channel.name}')
 
         for video in get_videos(channel):
+            log.debug(f"  - {video.title}")
             if video.id in seen:
+                log.debug(f"    - SEEN")
                 # add the seen back to the top, that way we dont
                 # accidentally double post if a channel is inactive for a while
                 with suppress(ValueError):
@@ -180,6 +186,7 @@ def get_videos(channel: WatchedChannel) -> List[Video]:
 
     except Exception as e:
         log.error(f'Error searching YouTube: {e}')
+        traceback.print_exc()
         return []
 
 def post(video, channel):
