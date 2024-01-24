@@ -27,46 +27,46 @@ SUBREDDIT = os.environ.get("SUBREDDIT")
 FLAIR_ID = os.environ.get("FLAIR_ID")
 
 CHANNELS = [
-    {
-        'id': 'UCzVu0rUV7xoerfGNx37SCjw',
-        'name': 'Dire Boar',
-        'title_sub': ['DireBoar -'],
-        'title_reject': ['(Full Stream)', '(FULL STREAM)', 'DireVODs']
-    },
-    {
-        'id': 'UC6CvZVuX2PP7IFxXI8bTIUA',
-        'name': 'Limesalicious',
-        'title_sub': ['Limes -']
-    },
-    {
-        'id': 'UCcubzpdxucT9b3Va1H6L7LA',
-        'name': 'Fredsauce',
-        'title_sub': ['Fred -', 'Fredsauce: ']
-    },
+    # {
+    #     'id': 'UCzVu0rUV7xoerfGNx37SCjw',
+    #     'name': 'Dire Boar',
+    #     'title_sub': ['DireBoar -'],
+    #     'title_reject': ['(Full Stream)', '(FULL STREAM)', 'DireVODs']
+    # },
+    # {
+    #     'id': 'UC6CvZVuX2PP7IFxXI8bTIUA',
+    #     'name': 'Limesalicious',
+    #     'title_sub': ['Limes -']
+    # },
+    # {
+    #     'id': 'UCcubzpdxucT9b3Va1H6L7LA',
+    #     'name': 'Fredsauce',
+    #     'title_sub': ['Fred -', 'Fredsauce: ']
+    # },
     {
         'id': 'UCzORJV8l3FWY4cFO8ot-F2w',
         'name': 'Vinny',
         'title_sub': ['Vinny -']
     },
-    {
-        'id': 'UC_qjBu445WM4dulK392K6ww',
-        'name': 'Rev',
-        'title_sub': ['- Rev']
-    },
-    {
-        'id': 'UCllm3HivMERwu2x2Sjz5EIg',
-        'name': 'Joel',
-        'title_sub': ['Joel -']
-    },
-    {
-        'id': 'UCb_y_5iILxmXRCffnq5oSUw',
-        'name': 'VicariousPotato'
-    },
-    {
-        'id': 'UCptltT9soFxW7FlyqfurfRQ',
-        'name': 'MentalJen',
-        'title_sub': ['Jen -']
-    },
+    # {
+    #     'id': 'UC_qjBu445WM4dulK392K6ww',
+    #     'name': 'Rev',
+    #     'title_sub': ['- Rev']
+    # },
+    # {
+    #     'id': 'UCllm3HivMERwu2x2Sjz5EIg',
+    #     'name': 'Joel',
+    #     'title_sub': ['Joel -']
+    # },
+    # {
+    #     'id': 'UCb_y_5iILxmXRCffnq5oSUw',
+    #     'name': 'VicariousPotato'
+    # },
+    # {
+    #     'id': 'UCptltT9soFxW7FlyqfurfRQ',
+    #     'name': 'MentalJen',
+    #     'title_sub': ['Jen -']
+    # },
     # {
     #     'id': 'UCxMbjeSHVFtV05rOrnc-hug',
     #     'name': 'Hootey'
