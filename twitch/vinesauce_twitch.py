@@ -1,190 +1,411 @@
 import os
 import re
-import praw
+import sys
 import json
-import requests
-import twitch
-from datetime import datetime as dt, timedelta
+import yaml
+import math
+import asyncio
 
-from oauth import TwitchOAuth
+from PIL import Image
+from io import BytesIO
+from enum import IntEnum
+from typing import Set, Dict, List, Optional
+from datetime import datetime as dt, timezone
+
+import sass
+import aiohttp
+import asyncpraw
+
+from twitchAPI.twitch import Twitch
+from pydantic import BaseModel, constr
+from aiopath import AsyncPath
+
 from derw import makeLogger
 
+TWITCH_CLIENT_ID = os.environ.get("TWITCH_CLIENT_ID")
+TWITCH_CLIENT_SECRET = os.environ.get("TWITCH_CLIENT_SECRET")
+
+REDDIT_CLIENT_ID = os.environ.get("REDDIT_CLIENT_ID")
+REDDIT_CLIENT_SECRET = os.environ.get("REDDIT_CLIENT_SECRET")
+REDDIT_REFRESH_TOKEN = os.environ.get("REDDIT_REFRESH_TOKEN")
+
 SUBREDDIT = os.environ.get("SUBREDDIT")
-TWITCH_ID = os.environ.get("TWITCH_ID")
-TWITCH_SECRET = os.environ.get("TWITCH_SECRET")
 WIDGET_ID = os.environ.get("WIDGET_ID")
 
-TEAM_URL = 'http://vinesauce.com/twitch/team-data-helix.json'
+STREAMER_CACHE = AsyncPath("streamers.json")
+
 
 log = makeLogger(__file__)
 
-team = None
-oauth = TwitchOAuth(TWITCH_ID, TWITCH_SECRET, [])
-ttv = twitch.Helix(TWITCH_ID, bearer_token = oauth.access_token, use_cache=True, cache_duration=timedelta(minutes=10))
-reddit = praw.Reddit('BonziBot', user_agent='Vinesauce Twitch.tv monitor /u/RenegadeAI')
-now = dt.utcnow()
+import logging
+log.setLevel(logging.DEBUG)
+for h in log.handlers:
+    h.setLevel(logging.DEBUG)
 
-log.debug('Logged in as {}'.format(reddit.user.me()))
 
-class Stream(object):
-    def __init__(self, user):
-        self.id = user.id
-        self.display_name = user.display_name
-        self.login = user.login
-        self.is_live = user.is_live
-        # self.title = ""
-        self.game = ""
+class Config(BaseModel):
+    friends: Set[constr(to_lower=True)]
 
-        if user.is_live:
-            self.type = user.stream.type
-            # self.title = user.stream.title
-            self.viewer_count = user.stream.viewer_count
-            self.started_at = user.stream.started_at
-            self.game = ttv.game(id=user.stream.game_id).name
+class StreamerStatus(IntEnum):
+    OFFLINE = 0
+    LIVE    = 1
 
-        else:
-            # This is still the only way to get hosts I guess
-            r = requests.get(f'http://tmi.twitch.tv/hosts?client_id={TWITCH_ID}&include_logins=1&host={self.id}')
-            if r.status_code == 200:
-                host = r.json().get('hosts')[0]
-                if host.get('target_id'):
-                    self.type = 'hosting'
-                    self.game = f'Hosting {host.get("target_display_name")}'
-                    self.host_target = host.get("target_display_name")
+    def __str__(self):
+        return self.name;
 
-                    return
-
-            self.type = "offline"
-            if user.login in team:
-                # self.title = team[user.login]["channel"]["status"]
-                self.game = team[user.login]["channel"]["game"]
+class Streamer(BaseModel):
+    id: str
+    login: str
+    display_name: str
+    profile_image_url: str
+    status: StreamerStatus
+    game_name: Optional[str] = "sample text"
+    title: Optional[str] = ""
+    viewer_count: Optional[int] = 0
 
     def render_sidebar(self):
-        if self.type == "live":
-            status = f'{self.display_name} playing {self.game}'
-        elif self.type == "hosting":
-            status = f'{self.display_name} is now hosting {self.host_target}'
+        if self.status == StreamerStatus.LIVE:
+            s = f'{self.display_name} playing {self.game_name}'
         else:
-            status = f'{self.display_name} last seen playing {self.game}'
+            s = f'{self.display_name} last seen playing {self.game_name}'
 
-        return f'>* [{status.upper()}](#{self.type})[](https://twitch.tv/{self.login})\n'
+        return f'>* [{s.upper()}](#{self.status})[](https://twitch.tv/{self.login})\n'
 
     def render_widget(self):
-        status = f'{self.viewer_count}' if self.is_live else self.type
+        if self.status == StreamerStatus.LIVE:
+            game = self.game_name
+            s = f'{self.viewer_count:,}'
 
-        return f'* [](#{self.type})[**~~{self.display_name}*{status}*~~{self.game.strip()}**](https://twitch.tv/{self.login})\n'
+        else:
+            game = f"Last seen playing {self.game_name}"
+            s = self.status
 
-def get_team():
-    log.debug('Checking for team updates...')
-
-    try:
-        req = requests.get(TEAM_URL)
-
-        team = req.json()
-
-        with open("./team.json", "w") as file:
-            json.dump(team, file)
-
-        return team
-
-    except Exception as e:
-        log.error('Error updating team: {}'.format(e))
-
-        with open("./team.json") as file:
-            return json.load(file)
-
-def get_streams(team):
-    log.debug('Fetching streams...')
-
-    ids = [int(_id) for _id, v in team.items()]
-    streams = []
-
-    for user in ttv.users(ids):
-        stream = Stream(user)
-        streams.append(stream)
-
-    return streams
+        return f'* [](#{str(self.status).lower()})[~~pic~~ >!**{self.display_name}** *{s}* **{game}**!<](https://twitch.tv/{self.login})\n'
 
 
-def update_widget(streams):
-    subreddit = reddit.subreddit(SUBREDDIT)
+class VinesauceTwitch():
+    MAIN_CHANNEL = "vinesauce"
 
-    try:
-        widget = subreddit.widgets.items[WIDGET_ID]
+    logins: list
+    config: Config = None
+    streamers: List[Streamer] = []
+    subreddit: asyncpraw.reddit.Subreddit
+    widget: asyncpraw.reddit.models.CustomWidget
 
+    def __init__(self) -> None:
+        pass
+
+    def __await__(self):
+        yield from asyncio.create_task(self.prepare())
+        return self
+
+    async def prepare(self):
+        # init reddit
+        self.reddit = asyncpraw.Reddit(
+            client_id=REDDIT_CLIENT_ID,
+            client_secret=REDDIT_CLIENT_SECRET,
+            refresh_token=REDDIT_REFRESH_TOKEN,
+            user_agent="Vinesauce Twitch.tv monitor /u/RenegadeAI"
+        )  # scopes:
+
+        # init target subreddit
+        self.subreddit = await self.reddit.subreddit(SUBREDDIT, fetch=True)
+        log.info(f"Using /r/{self.subreddit.display_name}")
+
+        # find target widget
+        try:
+            widgets = await self.subreddit.widgets.items()
+            self.widget = widgets[WIDGET_ID]
+
+        except KeyError:
+            log.critical(f'Could not find widget "{WIDGET_ID}"')
+
+            log.critical('Avaliable widgets:')
+            for w in self.subreddit.widgets.sidebar:
+                log.critical(f'    {w.id} - {w.kind}')
+
+            sys.exit(0)
+
+        # init twitch
+        self.twitch = await Twitch(TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET)
+
+        # load config
+        await self.load_config()
+
+        # create logins
+        self.logins = list(map(lambda x: x.lower(), self.config.friends))
+        self.logins.insert(0, self.MAIN_CHANNEL)
+
+        # load streamers from cache
+        if await STREAMER_CACHE.exists():
+            for s in json.loads(await STREAMER_CACHE.read_text()):
+                streamer = Streamer(**s)
+
+                if streamer.login in self.logins:
+                    self.streamers.append(streamer)
+
+    async def _fetch_config(self) -> Config:
+        log.debug(f"Fetching config for {self.subreddit.display_name}")
+        page = await self.subreddit.wiki.get_page("bots/twitch")
+        return Config(**yaml.safe_load(page.content_md))
+
+    async def load_config(self, force_fetch=False) -> None:
+        config_file = AsyncPath("config.yaml")
+
+        try:
+            self.config = Config(**yaml.safe_load(await config_file.read_text()))
+            log.debug(f"Loaded config for {self.subreddit.display_name}")
+
+        except Exception as e:
+            log.error(f"Failed to load config from file: {e}")
+
+        if not self.config or force_fetch:
+            self.config = await self._fetch_config()
+
+            await config_file.write_text(yaml.dump(self.config.model_dump()))
+
+        log.debug(self.config)
+
+    async def update_streamers(self) -> None:
+        data: Dict[str, dict] = {}
+
+        # fetch user data
+        async for u in self.twitch.get_users(logins=self.logins):
+            data[u.login] = {}
+            data[u.login]["status"] = StreamerStatus.OFFLINE
+
+            for s in ["id", "login", "display_name", "profile_image_url"]:
+                data[u.login][s] = getattr(u, s)
+
+        # fetch stream data
+        async for u in self.twitch.get_streams(user_login=self.logins):
+            data[u.user_login]["status"] = StreamerStatus.LIVE
+
+            for s in ["game_name", "title", "viewer_count"]:
+                data[u.user_login][s] = getattr(u, s)
+
+        # update existing streamers
+        for s in self.streamers:
+            for k, v in data[s.login].items():
+                if k == "login":
+                    continue
+
+                setattr(s, k, v)
+
+            del data[s.login]
+
+            log.debug(f"Updated {s.display_name} {s.status}")
+
+        # add new streamers
+        for login, d in data.items():
+            s = Streamer(**d)
+
+            self.streamers.append(s)
+
+            log.debug(f"Added {s.display_name} {s.status}")
+
+        self.streamers.sort(key=lambda x: x.status == StreamerStatus.LIVE, reverse=True) # sort live to top
+
+    def _build_css(self, img_styles: str) -> str:
+        with open("widget.scss") as fp:
+            scss = fp.read()
+
+            scss += img_styles
+
+            css = f"// Compiled at {dt.utcnow()}\n"
+            css += sass.compile(string=scss, output_style='compressed')
+
+            return css
+
+    async def build_widget(self, update_sprite=False, update_css=False, update_height=False) -> None:
+        THUMB_SIZE = 42
+
+        streamers = sorted(self.streamers, key=lambda x: int(x.id))
+
+        current_sprite = next(x for x in self.widget.imageData if x.name == "sprite")
+
+        to_update = {}
+
+        if current_sprite.height != len(streamers) * THUMB_SIZE:
+            update_sprite = True
+            update_css = True
+            update_height = True
+
+
+        if update_sprite:
+            log.debug(f"Updating sprite")
+
+            sprite = Image.new("RGBA", (THUMB_SIZE, len(self.streamers) * THUMB_SIZE))
+
+            async with aiohttp.ClientSession() as s:
+                for i, stream in enumerate(streamers):
+                    async with s.get(stream.profile_image_url) as r:
+                        fp = BytesIO()
+
+                        async for chunk in r.content.iter_chunked(2 * 1024):
+                            fp.write(chunk)
+
+                        fp.seek(0)
+
+                        im = Image.open(fp).resize((THUMB_SIZE, THUMB_SIZE))
+
+                        pos = i * THUMB_SIZE
+
+                        sprite.paste(im, (0, pos))
+
+
+            # upload the image directly, asyncpraw doesnt directly support this
+            # https://github.com/praw-dev/asyncpraw/blob/7bc8c10dd2c18229c14d1858bb1221ed806a4c00/asyncpraw/models/reddit/widgets.py#L1863
+            image = BytesIO()
+            sprite.save(image, format="PNG")
+            image.seek(0)
+
+            img_data = {
+                "filepath": "sprite.png",
+                "mimetype": "image/png",
+                "file": image,
+            }
+
+            url = asyncpraw.const.API_PATH["widget_lease"].format(subreddit=self.widget.subreddit)
+            response = await self.reddit.post(url, data=img_data)
+            upload_lease = response["s3UploadLease"]
+            upload_data = {item["name"]: item["value"] for item in upload_lease["fields"]}
+            upload_url = f"https:{upload_lease['action']}"
+
+            upload_data["file"] = image
+            response = await self.reddit._core._requestor._http.post(
+                upload_url, data=upload_data
+            )
+
+            response.raise_for_status()
+
+            image_url = f"{upload_url}/{upload_data['key']}"
+
+            if sprite.height == current_sprite.height:
+                # if the images are the same height, and I dont clear the widget first, uploading a new sprite will 404 for some reason
+                to_update["css"] = self.widget.css
+                self.widget = await self.widget.mod.update(imageData=[], css='{}')
+
+
+            image_data = self.widget.imageData
+
+            # update the widget
+            image_data.append({
+                'name': "sprite",
+                'width': sprite.width,
+                'height': sprite.height,
+                'url': image_url,
+            })
+
+            to_update["imageData"] = image_data
+
+
+        if update_css:
+            log.debug("Updating CSS")
+
+            img_styles = "li {\n"
+
+            for i, stream in enumerate(streamers):
+                pos = i * THUMB_SIZE
+
+                img_styles += f'a[href*="{stream.login}"] del:before {{ background-position: 0 -{pos}px }}\n'
+
+            img_styles += "}\n"
+
+            loop = asyncio.get_running_loop()
+            to_update["css"] = await loop.run_in_executor(None, self._build_css, img_styles)
+
+
+        if update_height:
+            log.debug("Updating height")
+
+            top_height = 184
+            row_height = 78
+
+            max_height = top_height + row_height * 3 + 31
+
+            height = top_height + math.ceil(len(self.streamers) / 4) * row_height
+
+            if height > max_height:
+                height = max_height
+
+            to_update["height"] = height
+
+
+        if to_update:
+            self.widget = await self.widget.mod.update(**to_update)
+
+            log.info("built widget")
+
+        else:
+            log.info("widget build skipped")
+
+
+    async def update_widget(self) -> None:
         content = ""
 
-        for stream in streams:
+        streamers = self.streamers
+
+        # main streamer
+        ms = next((x for x in streamers if x.login == self.MAIN_CHANNEL), None)
+
+        content += f"#### CURRENTLY {ms.status}\n\n"
+
+        content += ms.render_widget()
+
+        content += "\n\n"
+        content += "#### VINNY'S FRIENDS\n\n"
+
+        # the rest
+        streamers = filter(lambda x: x.login != self.MAIN_CHANNEL, streamers) # remove main streamer from the rest
+
+        for stream in streamers:
             content += stream.render_widget()
+
+        now = dt.now(tz=timezone.utc)
 
         content += f'\n\n`LAST UPDATED @ {now.strftime("%X")} {now.strftime("%x")} UTC`'
 
-        widget.mod.update(text=content, height=24 + len(streams)*50)
+        self.widget = await self.widget.mod.update(text=content)
 
-        log.debug('updated widget')
+        log.info('updated widget')
 
-    except KeyError:
-        log.critical(f'Could not find widget "{WIDGET_ID}"')
+    async def run(self) -> None:
+        await self.update_streamers()
 
-        print('Avaliable widgets:')
-        for w in subreddit.widgets.sidebar:
-            print(f'    {w.id} - {w.kind}')
+        await STREAMER_CACHE.write_text(json.dumps([s.model_dump() for s in self.streamers]))
 
-def update_sidebar(streams):
-    any_live = False
-    first_offline = True
-    content = ""
+        await self.subreddit.load()
 
-    for stream in streams:
-        if stream.type == "live": any_live = True
-        if stream.type == "offline" and first_offline:
-            content += ">* **[](#separator)**\n"
-            first_offline = False
+        await self.update_widget()
 
-        content += stream.render_sidebar()
+    async def close(self) -> None:
+        await self.reddit.close()
 
-    content_header = "> ###CLICK A CHANNEL TO START WATCHING!\n" if any_live else "> ###TEAM IS OFFLINE\n"
 
-    content = content_header + content
+async def main():
+    bot = await VinesauceTwitch()
 
-    content += f"* `LAST UPDATED\n@ {now.strftime('%X')}\n{now.strftime('%x')} UTC`\n"
+    mode = sys.argv[1]
 
-    subreddit = reddit.subreddit(SUBREDDIT)
-    sidebar = subreddit.wiki["config/sidebar"]
+    try:
+        if mode == "update":
+            await bot.run()
 
-    # Remove text currently between the markers
-    sb = re.sub(r'(\[\]\(#BOT_STREAMS\)).*(\[\]\(/BOT_STREAMS\))',
-                    '\\1\\2',
-                    sidebar.content_md,
-                    flags=re.DOTALL)
+        elif mode == "config":
+            await bot.load_config(force_fetch=True)
+            await bot.build_widget()
 
-    # Place new text between the markers
-    opening_marker = "[](#BOT_STREAMS)"
-    if content:
-        try:
-            marker_pos = sb.index(opening_marker) + len(opening_marker)
-            sb = sb[:marker_pos] + f'\n\n{content}\n' + sb[marker_pos:]
+        elif mode == "sprite":
+            await bot.build_widget(update_sprite=True)
 
-            sidebar.edit(content=sb)
+    except KeyboardInterrupt:
+        pass
 
-        except ValueError:
-            # Substring not found
-            log.critical(f'No streams marker found for /r/{SUBREDDIT}')
+    finally:
+        await bot.close()
 
-    log.debug('updated sidebar')
 
-if __name__ == '__main__':
-    team = get_team()
-
-    streams = get_streams(team)
-
-    streams.sort(key=lambda x: x.stream.viewer_count if hasattr(x, 'stream') else 0, reverse=True)
-
-    sort = []
-    for state in ["live", "hosting", "offline"]:
-        for stream in streams:
-            if stream.type == state:
-                sort.append(stream)
-
-    update_widget(sort)
-    update_sidebar(sort)
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())

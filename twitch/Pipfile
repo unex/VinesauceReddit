@@ -7,12 +7,18 @@ verify_ssl = true
 pillow = "*"
 
 [packages]
-utils = "*"
-praw = "*"
-requests = "*"
-python-dotenv = "*"
 derw = {git = "https://github.com/notderw/python-util"}
-twitch-python = "*"
+asyncpraw = "*"
+twitchapi = "*"
+pydantic = "*"
+pyyaml = "*"
+aiopath = "*"
+libsass = "*"
+pillow = "*"
+aiohttp = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.11"
+
+[scripts]
+bot = "python vinesauce_twitch.py"

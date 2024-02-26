@@ -1,0 +1,212 @@
+*, *:before, *:after { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 12px;
+    overflow: hidden;
+    font-family: 'Open Sans', sans-serif;
+}
+
+a[href*="twitch.tv"] {
+    display: flex;
+    text-decoration: none;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 300;
+    color: #878a8c; // --color-tone-3
+
+    del {
+        font-size: 0;
+        flex: 0 0 42px;
+
+        border: 2px solid transparent;
+        border-radius: 50%;
+
+        &:before {
+            display: block;
+            content: "";
+            background: url(%%sprite%%) no-repeat;
+            width: 42px;
+            height: 42px;
+            margin: 2px;
+            border-radius: 50%;
+        }
+    }
+
+    span {
+        display: flex;
+
+        em {
+            font-weight: normal;
+            font-size: 11px;
+            line-height: 12px;
+            text-transform: uppercase;
+            font-style: initial;
+        }
+    }
+
+    a[href="#live"] + & {
+        em:before {
+            display: inline-block;
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin: 1px 4px 0 0;
+            background: #e21212;
+        }
+    }
+}
+
+ul {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    &:first-of-type {
+        li {
+            height: 50px;
+
+            a[href="#live"] {
+                + a[href*="twitch.tv"] {
+                    color: #3ED095;
+
+                    del {
+                        border-color: #3ED095;
+                    }
+                }
+            }
+
+            a {
+                &::before {
+                    border-color: #053122;
+                }
+
+                span {
+                    flex-wrap: wrap;
+                    margin-left: 12px;
+                    flex: 1 1 auto;
+                    align-content: space-around;
+
+                    strong {
+                        &:first-of-type {
+                            flex: 1 1 auto;
+                            font-weight: bold;
+                        }
+
+                        &:last-of-type {
+                            flex: 0 0 100%;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    &:nth-of-type(2) {
+        position: relative;
+        grid-template-columns: auto auto auto auto; // reddit doesnt allow repeat()
+
+        overflow-x: hidden;
+        overflow-y: auto;
+        max-height: 78px * 3 + 31px;
+
+        a[href="#live"] + a[href*="twitch.tv"] {
+            color: #5c16c5;
+
+            del {
+                border-color: #5c16c5;
+            }
+        }
+
+        li {
+            display: inline-block;
+            margin: 6px 0;
+
+
+            a {
+                flex-direction: column;
+                align-items: center;
+
+                span {
+                    em {
+                        margin-top: 4px;
+                    }
+
+                    strong {
+                        &:first-of-type {
+                            display: none;
+                            position: absolute;
+                            right: 0;
+                            left: 0;
+                            z-index: 1;
+                            background: #fff;
+                            border: 1px solid #222;
+                            padding: 6px;
+                            pointer-events: none;
+                            margin: -12px 30px 0;
+                            text-align: center;
+                        }
+
+                        &:last-of-type {
+                            display: none;
+                        }
+                    }
+                }
+            }
+
+            a:hover span {
+                strong:first-of-type {
+                    display: block;
+                }
+            }
+        }
+    }
+}
+
+a[href*="#"] { display: none }
+
+.md {
+    // Headers
+    > h4 {
+        text-align: center;
+        font-weight: bolder;
+
+        &:first-of-type {
+            margin-top: 0;
+        }
+    }
+
+    // Last updated status
+    > p {
+        margin: 0;
+        position: absolute;
+        bottom: 0;
+        font-size: 10px;
+        color: transparent;
+    }
+}
+
+// dark mode
+@media (prefers-color-scheme: dark) {
+    :root:not(.theme-light) {
+        a {
+            color: #818384;
+        }
+
+        ul:nth-of-type(2) {
+            a[href="#live"] + a[href*="twitch.tv"] {
+                color: #bf94ff;
+
+                del {
+                    border-color: #bf94ff;
+                }
+            }
+
+            li a span strong:first-of-type {
+                background: #222;
+            }
+        }
+    }
+}
