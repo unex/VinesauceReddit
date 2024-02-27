@@ -5,6 +5,7 @@ import json
 import yaml
 import math
 import asyncio
+import logging
 
 from PIL import Image
 from io import BytesIO
@@ -20,7 +21,6 @@ from twitchAPI.twitch import Twitch
 from pydantic import BaseModel, constr
 from aiopath import AsyncPath
 
-from derw import makeLogger
 
 TWITCH_CLIENT_ID = os.environ.get("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.environ.get("TWITCH_CLIENT_SECRET")
@@ -36,13 +36,12 @@ CACHE_DIR = AsyncPath('.cache')
 
 STREAMER_CACHE = CACHE_DIR.joinpath("streamers.json")  # AsyncPath("streamers.json")
 
-
-log = makeLogger(__file__)
-
-import logging
+log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-for h in log.handlers:
-    h.setLevel(logging.DEBUG)
+
+ch = logging.StreamHandler()
+ch.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
+log.addHandler(ch)
 
 
 class Config(BaseModel):
