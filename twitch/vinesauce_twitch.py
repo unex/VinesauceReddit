@@ -32,7 +32,9 @@ REDDIT_REFRESH_TOKEN = os.environ.get("REDDIT_REFRESH_TOKEN")
 SUBREDDIT = os.environ.get("SUBREDDIT")
 WIDGET_ID = os.environ.get("WIDGET_ID")
 
-STREAMER_CACHE = AsyncPath("streamers.json")
+CACHE_DIR = AsyncPath('.cache')
+
+STREAMER_CACHE = CACHE_DIR.joinpath("streamers.json")  # AsyncPath("streamers.json")
 
 
 log = makeLogger(__file__)
@@ -150,7 +152,7 @@ class VinesauceTwitch():
         return Config(**yaml.safe_load(page.content_md))
 
     async def load_config(self, force_fetch=False) -> None:
-        config_file = AsyncPath("config.yaml")
+        config_file = CACHE_DIR.joinpath("config.yaml")
 
         try:
             self.config = Config(**yaml.safe_load(await config_file.read_text()))
@@ -205,6 +207,8 @@ class VinesauceTwitch():
             log.debug(f"Added {s.display_name} {s.status}")
 
         self.streamers.sort(key=lambda x: x.status == StreamerStatus.LIVE, reverse=True) # sort live to top
+
+        await STREAMER_CACHE.write_text(json.dumps([s.model_dump() for s in self.streamers]))
 
     def _build_css(self, img_styles: str) -> str:
         with open("widget.scss") as fp:
@@ -373,8 +377,6 @@ class VinesauceTwitch():
     async def run(self) -> None:
         await self.update_streamers()
 
-        await STREAMER_CACHE.write_text(json.dumps([s.model_dump() for s in self.streamers]))
-
         await self.subreddit.load()
 
         await self.update_widget()
@@ -384,6 +386,8 @@ class VinesauceTwitch():
 
 
 async def main():
+    await CACHE_DIR.mkdir(exist_ok=True)
+
     bot = await VinesauceTwitch()
 
     mode = sys.argv[1]
@@ -394,6 +398,7 @@ async def main():
 
         elif mode == "config":
             await bot.load_config(force_fetch=True)
+            await bot.update_streamers()
             await bot.build_widget()
 
         elif mode == "sprite":
