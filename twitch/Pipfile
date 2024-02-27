@@ -7,7 +7,6 @@ verify_ssl = true
 pillow = "*"
 
 [packages]
-derw = {git = "https://github.com/notderw/python-util"}
 asyncpraw = "*"
 twitchapi = "*"
 pydantic = "*"
