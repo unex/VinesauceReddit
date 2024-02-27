@@ -226,11 +226,14 @@ class VinesauceTwitch():
 
         streamers = sorted(self.streamers, key=lambda x: int(x.id))
 
-        current_sprite = next(x for x in self.widget.imageData if x.name == "sprite")
+        try:
+            current_sprite = next(x for x in self.widget.imageData if x.name == "sprite")
+        except StopIteration:
+            current_sprite = None #asyncpraw.reddit.models.ImageData(self.reddit, {"height": -1})
 
         to_update = {}
 
-        if current_sprite.height != len(streamers) * THUMB_SIZE:
+        if not current_sprite or current_sprite.height != len(streamers) * THUMB_SIZE:
             update_sprite = True
             update_css = True
             update_height = True
@@ -285,11 +288,14 @@ class VinesauceTwitch():
 
             image_url = f"{upload_url}/{upload_data['key']}"
 
-            if sprite.height == current_sprite.height:
+            if current_sprite and sprite.height == current_sprite.height:
                 # if the images are the same height, and I dont clear the widget first, uploading a new sprite will 404 for some reason
+                log.debug(" - clearing sprite")
+
                 to_update["css"] = self.widget.css
                 self.widget = await self.widget.mod.update(imageData=[], css='{}')
 
+                await asyncio.sleep(1)
 
             image_data = self.widget.imageData
 
