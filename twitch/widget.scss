@@ -7,6 +7,23 @@ body {
     font-family: 'Open Sans', sans-serif;
 }
 
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+    background: transparent;
+
+    :hover & {
+        background: #565758;
+    }
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
 a[href*="twitch.tv"] {
     display: flex;
     text-decoration: none;
