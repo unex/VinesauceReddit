@@ -133,10 +133,6 @@ class VinesauceTwitch():
         # load config
         await self.load_config()
 
-        # create logins
-        self.logins = list(map(lambda x: x.lower(), self.config.friends))
-        self.logins.insert(0, self.MAIN_CHANNEL)
-
         # load streamers from cache
         if await STREAMER_CACHE.exists():
             for s in json.loads(await STREAMER_CACHE.read_text()):
@@ -144,6 +140,14 @@ class VinesauceTwitch():
 
                 if streamer.login in self.logins:
                     self.streamers.append(streamer)
+
+    @property
+    def logins(self):
+        # create logins
+        logins = list(map(lambda x: x.lower(), self.config.friends))
+        logins.insert(0, self.MAIN_CHANNEL)
+
+        return logins
 
     async def _fetch_config(self) -> Config:
         log.debug(f"Fetching config for {self.subreddit.display_name}")
@@ -399,6 +403,7 @@ async def main():
 
     try:
         if mode == "update":
+            await bot.build_widget(update_css=True)
             await bot.run()
 
         elif mode == "config":
