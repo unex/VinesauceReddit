@@ -302,6 +302,11 @@ class VinesauceTwitch():
 
             image_data = self.widget.imageData
 
+            try:
+                image_data.remove(current_sprite)
+            except:
+                pass
+
             # update the widget
             image_data.append({
                 'name': "sprite",
