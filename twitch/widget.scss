@@ -33,6 +33,10 @@ a[href*="twitch.tv"] {
     color: #878a8c; // --color-tone-3
 
     del {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
         font-size: 0;
         flex: 0 0 42px;
 
@@ -114,6 +118,7 @@ ul {
 
                         &:last-of-type {
                             flex: 0 0 100%;
+                            white-space: break-spaces;
                         }
                     }
                 }
