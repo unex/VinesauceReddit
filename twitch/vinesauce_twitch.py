@@ -191,6 +191,9 @@ class VinesauceTwitch():
 
         # update existing streamers
         for s in self.streamers:
+            if not s.login in data:
+                continue
+
             for k, v in data[s.login].items():
                 if k == "login":
                     continue
