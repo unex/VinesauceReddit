@@ -411,7 +411,7 @@ async def main():
 
     try:
         if mode == "update":
-            await bot.build_widget(update_css=True)
+            await bot.build_widget()
             await bot.run()
 
         elif mode == "config":
