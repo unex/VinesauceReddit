@@ -81,7 +81,7 @@ class Streamer(BaseModel):
             game = f"Last seen playing {self.game_name}"
             s = self.status
 
-        return f'* [](#{str(self.status).lower()})[~~pic~~ >!**{self.display_name}** *{s}* **{game}**!<](https://twitch.tv/{self.login})\n'
+        return f'* [](#{str(self.status).lower()})[~~pic~~ >!**{self.display_name}** *{s}* **{game.strip()}**!<](https://twitch.tv/{self.login})\n'
 
 
 class VinesauceTwitch():
