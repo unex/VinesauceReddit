@@ -8,6 +8,7 @@ from contextlib import suppress
 from datetime import datetime, timedelta
 
 import praw
+import prawcore
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
@@ -212,12 +213,25 @@ def post(video, channel):
 
     while True:
         try:
+            # Unsticky any bot posts
+            for i in reversed(range(1, 7)):
+                try:
+                    s = subreddit.sticky(number=i)
+
+                    if s.author == reddit.user.me():
+                        s.mod.sticky(state=False)
+
+                except prawcore.NotFound as e:
+                    continue
+
             s = subreddit.submit(
                 video_title,
                 url = video.url,
                 flair_id = FLAIR_ID,
                 resubmit = True
             )
+
+            s.mod.sticky(bottom=True, state=True)
 
             log.info(f'Posted: {video_title} {s.shortlink}')
             break
