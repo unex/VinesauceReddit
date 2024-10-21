@@ -54,7 +54,7 @@ db = mongo.vinesauce.bluesky
 
 def main():
     for submission in reversed(list(reddit.subreddit(SUBREDDIT).hot(limit=7))):
-        if submission.link_flair_text == 'Weekly Post' or submission.score >= 80:
+        if submission.stickied or submission.score >= 80:
 
             if db.find_one({"id": submission.id}):
                 log.debug(f"Skipping {submission.id}")
