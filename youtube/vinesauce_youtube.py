@@ -1,27 +1,37 @@
 import os
 import sys
+import logging
+import datetime
 import traceback
 
 from typing import List, Optional
 from collections import deque
 from contextlib import suppress
-from datetime import datetime, timedelta
-
+from datetime import datetime as dt, timedelta
 import praw
 import prawcore
+import pymongo
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
 from pydantic import BaseModel
-from derw import makeLogger
 
-log = makeLogger(__file__)
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
-# import logging
-# log.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
+log.addHandler(ch)
+
 
 DRY_RUN = '--dry-run' in sys.argv
 POPULATE_SEEN = '--populate-seen' in sys.argv
+
+MONGO_URI = os.environ.get("MONGO_URI")
+
+REDDIT_CLIENT_ID = os.environ.get("REDDIT_CLIENT_ID")
+REDDIT_CLIENT_SECRET = os.environ.get("REDDIT_CLIENT_SECRET")
+REDDIT_REFRESH_TOKEN = os.environ.get("REDDIT_REFRESH_TOKEN")
 
 DEVELOPER_KEY = os.environ.get("DEVELOPER_KEY")
 SUBREDDIT = os.environ.get("SUBREDDIT")
@@ -91,6 +101,9 @@ CHANNELS = [
     # }
 ]
 
+mongo = pymongo.MongoClient(MONGO_URI)
+db = mongo.vinesauce.youtube
+
 class WatchedChannel(BaseModel):
     id: str
     name: str
@@ -115,21 +128,23 @@ class Video(BaseModel):
         )
 
 
-class SeenVideos(deque):
-    _file = os.path.dirname(os.path.realpath(__file__)) + '/seen_videos'
+class SeenVideos(object):
+    def __init__(self) -> None:
+        pass
 
-    def __init__(self, maxlen: Optional[int]) -> None:
-        with open(self._file, 'r') as f:
-            ids = f.read().strip().split('\n')
+    def __contains__(self, _id) -> bool:
+        return db.find_one({"id": _id}) is not None
 
-            super().__init__(ids, maxlen)
-
-    def save(self):
-        with open(self._file, 'w') as f:
-            f.write('\n'.join(list(self)))
+    def add(self, _id) -> None:
+        db.insert_one({"id": _id})
 
 
-reddit = praw.Reddit('BonziBot', user_agent = 'Vinesauce YouTube Bot - /u/RenegadeAI')
+reddit = praw.Reddit(
+    client_id=REDDIT_CLIENT_ID,
+    client_secret=REDDIT_CLIENT_SECRET,
+    refresh_token=REDDIT_REFRESH_TOKEN,
+    user_agent='Vinesauce YouTube Bot - /u/RenegadeAI',
+)
 reddit.validate_on_submit = True
 subreddit = reddit.subreddit(SUBREDDIT)
 youtube = build('youtube', 'v3', developerKey = DEVELOPER_KEY)
@@ -137,7 +152,7 @@ youtube = build('youtube', 'v3', developerKey = DEVELOPER_KEY)
 
 def main():
     log.info(f'Logged into reddit as /u/{reddit.user.me()} on /r/{subreddit.display_name}')
-    seen = SeenVideos(100)
+    seen = SeenVideos()
 
     for c in CHANNELS:
         channel = WatchedChannel(**c)
@@ -147,12 +162,6 @@ def main():
             log.debug(f"  - {video.title}")
             if video.id in seen:
                 log.debug(f"    - SEEN")
-                # add the seen back to the top, that way we dont
-                # accidentally double post if a channel is inactive for a while
-                with suppress(ValueError):
-                    seen.remove(video.id)
-
-                seen.append(video.id)
 
                 continue
 
@@ -161,17 +170,15 @@ def main():
             else:
                 log.info(f'POPULATING SEEN - {video.id}')
 
-            seen.append(video.id)
-
-    if not DRY_RUN:
-        seen.save()
+            if not DRY_RUN:
+                seen.add(video.id)
 
 def get_videos(channel: WatchedChannel) -> List[Video]:
     try:
-        yesterday = datetime.utcnow() - timedelta(hours = 24)
+        yesterday = dt.now(datetime.UTC) - timedelta(hours = 24)
         r = youtube.activities().list(
                 channelId = channel.id,
-                publishedAfter = yesterday.isoformat('T') + 'Z',
+                publishedAfter = yesterday.isoformat(timespec='milliseconds').replace('+00:00', 'Z'),
                 part = "snippet, contentDetails",
             ).execute()
 
@@ -181,7 +188,7 @@ def get_videos(channel: WatchedChannel) -> List[Video]:
         for err in e.error_details:
             if err.get('reason') == 'quotaExceeded':
                 log.critical('YouTube API quota exceeded, exiting')
-                sys.exit(0)
+                sys.exit(1)
 
         log.error(e)
 

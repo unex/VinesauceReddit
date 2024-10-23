@@ -8,8 +8,11 @@ verify_ssl = true
 [packages]
 praw = "*"
 google-api-python-client = "*"
-derw = {git = "https://github.com/notderw/python-util"}
 pydantic = "*"
+pymongo = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.12"
+
+[scripts]
+bot = "python vinesauce_youtube.py"
