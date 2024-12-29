@@ -10,7 +10,7 @@ import pymongo
 import requests
 
 import atproto
-from atproto import client_utils
+from atproto import client_utils, models
 
 from PIL import Image
 
@@ -108,6 +108,7 @@ def fetch_media(url: str) -> bytes:
 
 def send(submission: praw.reddit.Submission):
     images = []
+    image_ratios = []
     embed = None
 
     builder = client_utils.TextBuilder()
@@ -148,6 +149,7 @@ def send(submission: praw.reddit.Submission):
                     data = fp.read()
 
                 images.append(data)
+                image_ratios.append(models.AppBskyEmbedDefs.AspectRatio(height=im.height, width=im.width))
 
 
     elif m := submission.media:
