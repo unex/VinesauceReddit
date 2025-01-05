@@ -166,7 +166,7 @@ def send(submission: praw.reddit.Submission):
     log.info(f'Posting: {submission.shortlink}')
 
     if images:
-        bluesky.send_images(builder, images=images)
+        bluesky.send_images(builder, images=images, image_aspect_ratios=image_ratios)
     else:
         bluesky.post(builder, embed=embed)
 
