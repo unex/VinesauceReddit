@@ -38,6 +38,7 @@ BLUESKY_USERNAME = os.environ.get("BLUESKY_USERNAME")
 BLUESKY_PASSWORD = os.environ.get("BLUESKY_PASSWORD")
 
 SUBREDDIT = os.environ.get("SUBREDDIT")
+SCORE_THRESH = os.environ.get("SCORE_THRESH")
 
 reddit = praw.Reddit(
     client_id=REDDIT_CLIENT_ID,
@@ -54,7 +55,7 @@ db = mongo.vinesauce.bluesky
 
 def main():
     for submission in reversed(list(reddit.subreddit(SUBREDDIT).hot(limit=7))):
-        if submission.stickied or submission.score >= 80:
+        if submission.stickied or submission.score >= int(SCORE_THRESH):
 
             if db.find_one({"id": submission.id}):
                 log.debug(f"Skipping {submission.id}")
