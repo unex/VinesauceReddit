@@ -36,6 +36,7 @@ REDDIT_REFRESH_TOKEN = os.environ.get("REDDIT_REFRESH_TOKEN")
 
 BLUESKY_USERNAME = os.environ.get("BLUESKY_USERNAME")
 BLUESKY_PASSWORD = os.environ.get("BLUESKY_PASSWORD")
+BLUESKY_TAGS = os.environ.get("BLUESKY_TAGS", "")
 
 SUBREDDIT = os.environ.get("SUBREDDIT")
 SCORE_THRESH = os.environ.get("SCORE_THRESH")
@@ -118,7 +119,9 @@ def send(submission: praw.reddit.Submission):
 
     builder.link("view on reddit", submission.shortlink)
     builder.text(" • ")
-    builder.tag("#vinesauce", "vinesauce")
+
+    for tag in BLUESKY_TAGS.split(","):
+        builder.tag(f"#{tag}", f"{tag}")
 
     if any(s in submission.url for s in ('imgur.com', 'i.redd.it', 'i.reddituploads.com')):
         urls = get_media_urls(submission.url)
