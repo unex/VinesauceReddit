@@ -13,6 +13,7 @@ import atproto
 from atproto import client_utils, models
 
 from PIL import Image
+from discord_webhook import DiscordWebhook, DiscordEmbed
 
 
 log = logging.getLogger(__name__)
@@ -40,6 +41,8 @@ BLUESKY_TAGS = os.environ.get("BLUESKY_TAGS", "")
 
 SUBREDDIT = os.environ.get("SUBREDDIT")
 SCORE_THRESH = os.environ.get("SCORE_THRESH")
+
+STATS_WH = os.environ.get("STATS_WH")
 
 reddit = praw.Reddit(
     client_id=REDDIT_CLIENT_ID,
@@ -173,6 +176,28 @@ def send(submission: praw.reddit.Submission):
         bluesky.send_images(builder, images=images, image_aspect_ratios=image_ratios)
     else:
         bluesky.post(builder, embed=embed)
+
+
+    bm = bluesky.me
+
+    webhook = DiscordWebhook(
+        url=STATS_WH,
+        content="",
+        username=bm.handle,
+        avatar_url=bm.avatar,
+        rate_limit_retry=True
+    )
+
+    embed = DiscordEmbed(
+        title=f"Posted: {submission.title}",
+        description=f"score: {submission.score} (thresh {SCORE_THRESH})\n{submission.shortlink}",
+        color="2196F3"
+    )
+
+    embed.set_timestamp()
+
+    webhook.add_embed(embed)
+    webhook.execute()
 
 
 if __name__ == '__main__':

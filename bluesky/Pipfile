@@ -10,6 +10,7 @@ praw = "*"
 atproto = "*"
 pymongo = "*"
 pillow = "*"
+discord-webhook = "*"
 
 [requires]
 python_version = "3.12"
